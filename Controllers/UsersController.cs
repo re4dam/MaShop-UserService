@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using UserService.Data;
 using UserService.Models;
 using UserService.DTOs.UserDTO;
+using UserService.Services;
 
 namespace UserService.Controllers;
 
@@ -11,10 +12,12 @@ namespace UserService.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly UserDbContext _context;
+    private readonly IPasswordHasher _passwordHasher;
 
-    public UsersController(UserDbContext context)
+    public UsersController(UserDbContext context, IPasswordHasher passwordHasher)
     {
         _context = context;
+        _passwordHasher = passwordHasher;
     }
 
     // GET: api/users
@@ -49,7 +52,7 @@ public class UsersController : ControllerBase
         };
     }
 
-    // POST: api/users
+    // POST: api/users/register
     [HttpPost("register")]
     public async Task<ActionResult<UserResponseDto>> RegisterUser(UserRegisterDto registerDto)
     {
@@ -60,7 +63,7 @@ public class UsersController : ControllerBase
             Email = registerDto.Email,
             Address = registerDto.Address,
             Contact = registerDto.Contact,
-            Password = registerDto.Password // In a real app, hash this!
+            Password = _passwordHasher.HashPassword(registerDto.Password)
         };
 
         _context.Users.Add(user);
