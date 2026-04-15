@@ -92,6 +92,7 @@ public class UsersController : ControllerBase
                 Id = user.Id,
                 Name = user.Name,
                 Email = user.Email,
+                Address = user.Address,
                 Event = "User_Published"
             };
             _messageBusClient.PublishNewUser(userPublishedDto);
