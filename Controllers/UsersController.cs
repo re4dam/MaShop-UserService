@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using UserService.Data;
 using UserService.Models;
 using UserService.DTOs.UserDTO;
+using UserService.DTOs.PublishDTO;
 using UserService.Services;
 
 namespace UserService.Controllers;
@@ -13,11 +14,16 @@ public class UsersController : ControllerBase
 {
     private readonly UserDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IMessageBusClient _messageBusClient;
 
-    public UsersController(UserDbContext context, IPasswordHasher passwordHasher)
+    public UsersController(
+        UserDbContext context, 
+        IPasswordHasher passwordHasher,
+        IMessageBusClient messageBusClient)
     {
         _context = context;
         _passwordHasher = passwordHasher;
+        _messageBusClient = messageBusClient;
     }
 
     // GET: api/users
@@ -77,6 +83,23 @@ public class UsersController : ControllerBase
             Address = user.Address,
             Contact = user.Contact
         };
+
+        // Publish to Message Bus
+        try
+        {
+            var userPublishedDto = new UserPublishedDto
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
+                Event = "User_Published"
+            };
+            _messageBusClient.PublishNewUser(userPublishedDto);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"--> Could not send asynchronously: {ex.Message}");
+        }
 
         return CreatedAtAction(nameof(GetUser), new { id = user.Id }, responseDto);
     }

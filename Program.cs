@@ -14,6 +14,7 @@ builder.Services.AddDbContext<UserDbContext>(options =>
 
 // Register Services
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+builder.Services.AddSingleton<IMessageBusClient, MessageBusClient>();
 
 var app = builder.Build();
 
