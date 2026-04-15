@@ -5,6 +5,7 @@ using UserService.Models;
 using UserService.DTOs.UserDTO;
 using UserService.DTOs.PublishDTO;
 using UserService.Services;
+using UserService.AsyncDataServices;
 
 namespace UserService.Controllers;
 
@@ -91,11 +92,11 @@ public class UsersController : ControllerBase
             {
                 Id = user.Id,
                 Name = user.Name,
-                Email = user.Email,
                 Address = user.Address,
+                Contact = user.Contact,
                 Event = "User_Published"
             };
-            _messageBusClient.PublishNewUser(userPublishedDto);
+            await _messageBusClient.PublishNewUser(userPublishedDto);
         }
         catch (Exception ex)
         {

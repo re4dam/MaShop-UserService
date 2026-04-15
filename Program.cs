@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using UserService.Data;
 using UserService.Services;
+using UserService.AsyncDataServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
