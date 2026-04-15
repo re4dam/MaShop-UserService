@@ -88,6 +88,7 @@ public class UsersController : ControllerBase
 
             var userPublishedDto = new UserPublishedDto
             {
+                MessageId = Guid.NewGuid(),
                 Id = user.Id,
                 Name = user.Name,
                 Address = user.Address,
