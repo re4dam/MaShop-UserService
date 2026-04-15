@@ -16,6 +16,7 @@ builder.Services.AddDbContext<UserDbContext>(options =>
 // Register Services
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddSingleton<IMessageBusClient, MessageBusClient>();
+builder.Services.AddHostedService<OutboxPublisher>();
 
 var app = builder.Build();
 

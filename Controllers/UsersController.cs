@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using UserService.Data;
 using UserService.Models;
 using UserService.DTOs.UserDTO;
@@ -15,16 +16,13 @@ public class UsersController : ControllerBase
 {
     private readonly UserDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IMessageBusClient _messageBusClient;
 
     public UsersController(
         UserDbContext context, 
-        IPasswordHasher passwordHasher,
-        IMessageBusClient messageBusClient)
+        IPasswordHasher passwordHasher)
     {
         _context = context;
         _passwordHasher = passwordHasher;
-        _messageBusClient = messageBusClient;
     }
 
     // GET: api/users
@@ -73,9 +71,6 @@ public class UsersController : ControllerBase
             Password = _passwordHasher.HashPassword(registerDto.Password)
         };
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
         var responseDto = new UserResponseDto
         {
             Id = user.Id,
@@ -85,9 +80,12 @@ public class UsersController : ControllerBase
             Contact = user.Contact
         };
 
-        // Publish to Message Bus
+        using var transaction = await _context.Database.BeginTransactionAsync();
+
         try
         {
+            _context.Users.Add(user);
+
             var userPublishedDto = new UserPublishedDto
             {
                 Id = user.Id,
@@ -96,11 +94,24 @@ public class UsersController : ControllerBase
                 Contact = user.Contact,
                 Event = "User_Published"
             };
-            await _messageBusClient.PublishNewUser(userPublishedDto);
+
+            var outboxMessage = new OutboxMessage
+            {
+                Id = Guid.NewGuid(),
+                Type = "User_Published",
+                Content = JsonSerializer.Serialize(userPublishedDto),
+                OccuredOn = DateTime.UtcNow
+            };
+
+            _context.OutboxMessages.Add(outboxMessage);
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"--> Could not send asynchronously: {ex.Message}");
+            await transaction.RollbackAsync();
+            return StatusCode(500, $"Internal server error: {ex.Message}");
         }
 
         return CreatedAtAction(nameof(GetUser), new { id = user.Id }, responseDto);
